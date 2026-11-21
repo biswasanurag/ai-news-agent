@@ -6,6 +6,7 @@ from tools import fetch_all_recent, TOOLS
 from curate import curate, READER_PROFILE
 from agent import run_agent
 from checks import run_checks
+from emailer import markdown_to_html, send_digest
 
 WRITER_MODEL = "claude-sonnet-5-5"
 MIN_SCORE = 2      # drop stories scoring below this
@@ -117,3 +118,16 @@ if __name__ == "__main__":
     print("\nCHECKS:", "all passed" if not problems else "")
     for p in problems:
         print("  FAIL:", p)
+
+    with open("data/digest.html", "w", encoding="utf-8") as f:
+        f.write(markdown_to_html(digest))
+    print("\nHTML preview saved to data/digest.html")
+
+    if "--send" in sys.argv:
+        if problems:
+            print("Checks failed, so the email was NOT sent.")
+        else:
+            send_digest(subject, digest)
+            print("Email sent.")
+    else:
+        print("Dry run. Add --send to email it.")
