@@ -1,0 +1,37 @@
+name: Daily AI digest
+
+on:
+    schedule:
+        - cron: "17 11 * * *" # 11:17 UTC / 6:17 EST every day
+    workflow_dispatch:
+
+jobs:
+    send-digest:
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-python@v5
+              with:
+                  python-version: "3.13"
+                  cache: pip
+
+            - name: Install dependencies
+              run: pip install -r requirements.txt
+
+            - name: Build and send the digest
+              env:
+                  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+                  EMAIL_SENDER: ${{ secrets.EMAIL_SENDER }}
+                  EMAIL_APP_PASSWORD: ${{ secrets.EMAIL_APP_PASSWORD }}
+                  EMAIL_RECIPIENT: ${{ secrets.EMAIL_RECIPIENT }}
+              run: python src/main.py --send
+
+            - name: Keep outputs for debugging
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: digest-output
+                  path: data/
+                  retention-days: 7

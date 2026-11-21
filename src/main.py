@@ -126,6 +126,7 @@ if __name__ == "__main__":
     if "--send" in sys.argv:
         if problems:
             print("Checks failed, so the email was NOT sent.")
+            sys.exit(1)
         else:
             send_digest(subject, digest)
             print("Email sent.")
