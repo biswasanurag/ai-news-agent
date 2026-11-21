@@ -3,6 +3,8 @@ import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta, timezone
 import feedparser
+import socket
+socket.setdefaulttimeout(15)
 
 FEEDS = {
     "Hugging Face": "https://huggingface.co/blog/feed.xml",
@@ -12,15 +14,14 @@ FEEDS = {
     "OpenAI": "https://openai.com/news/rss.xml",
 }
 
-
 def fetch_feed(source: str, url: str, hours: int = 24) -> list[dict]:
-    """Return items from one feed published within the last `hours` hours."""
+    """Return items from one feed published within the last `hours` hours.
+    Raises ValueError if the feed cannot be read."""
     cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
     parsed = feedparser.parse(url)
 
     if parsed.bozo and not parsed.entries:
-        print(f"[warn] could not read feed: {source}")
-        return []
+        raise ValueError(f"could not read feed ({parsed.get('bozo_exception')})")
 
     items = []
     for entry in parsed.entries:
@@ -41,10 +42,21 @@ def fetch_feed(source: str, url: str, hours: int = 24) -> list[dict]:
 
 def fetch_all_recent(hours: int = 24) -> list[dict]:
     """Collect recent items from every feed, newest first."""
-    all_items = []
+    all_items, failures = [], []
     for source, url in FEEDS.items():
-        all_items.extend(fetch_feed(source, url, hours))
+        try:
+            all_items.extend(fetch_feed(source, url, hours))
+        except Exception as e:
+            failures.append(source)
+            print(f"[warn] {source} failed: {e}")
+
+    if len(failures) == len(FEEDS):
+        raise RuntimeError("All feeds failed; check the network or the feed URLs")
+    if failures:
+        print(f"[warn] continuing without: {', '.join(failures)}")
+
     return sorted(all_items, key=lambda x: x["published"], reverse=True)
+
 
 def read_article(url: str, max_chars: int = 4000) -> dict:
     """Fetch a page and return the start of its main text."""

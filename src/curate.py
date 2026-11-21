@@ -4,9 +4,10 @@ import sys
 from dotenv import load_dotenv
 import anthropic
 from tools import fetch_all_recent
+from usage import track
 
 load_dotenv()
-client = anthropic.Anthropic()
+client = anthropic.Anthropic(max_retries=4, timeout=60.0)
 
 CURATOR_MODEL = "claude-haiku-5-5"
 
@@ -113,6 +114,7 @@ def curate(items: list[dict]) -> list[dict]:
         tools=[CURATION_TOOL],
         messages=[{"role": "user", "content": json.dumps(numbered, ensure_ascii=False)}],
     )
+    track(CURATOR_MODEL, response.usage)
     print(f"[curator] input={response.usage.input_tokens} "
           f"output={response.usage.output_tokens} (limit {max_out})")
 
