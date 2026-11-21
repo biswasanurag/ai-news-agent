@@ -140,7 +140,7 @@ def curate(items: list[dict]) -> list[dict]:
     for s in stories:
         s["items"] = [items[i] for i in s["item_ids"] if 0 <= i < len(items)]
 
-    return sorted(stories, key=lambda s: s["score"], reverse=True)
+    return sorted(stories, key=lambda s: (s["score"], len(s["items"])), reverse=True)
 
 
 if __name__ == "__main__":
